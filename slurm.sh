@@ -22,19 +22,27 @@ rm -f ${EXE}
 echo compiling $SRC to $EXE
 icc -qopenmp -O2 -std=c99 $SRC coordReader.c ompcInsertion.c ompfInsertion.c ompnAddition.c -o $EXE
 
-# Execute gomp-only with different coord files
+# Function to measure execution time
+measure_time() {
+    start=$(date +%s.%N)
+    ./$1
+    end=$(date +%s.%N)
+    elapsed=$(echo "$end - $start" | bc)
+    echo "Execution time: $elapsed seconds"
+}
 
-
-
-./gnu-omp_ne.sh; ./gomp-only 9_coords.coord coStudent1_9.dat foStudent1_9.dat noStudent1_9.dat;
-./gnu-omp_ne.sh; ./gomp-only 16_coords.coord coStudent1_16.dat foStudent1_16.dat noStudent1_16.dat;
-./gnu-omp_ne.sh; ./gomp-only 512_coords.coord coStudent1_512.dat foStudent1_512.dat noStudent1_512.dat;
+# Run gomp-only with different coord files
+./gnu-omp_ne.sh; measure_time "./gomp-only 9_coords.coord coStudent1_9.dat foStudent1_9.dat noStudent1_9.dat"
+./gnu-omp_ne.sh; measure_time "./gomp-only 16_coords.coord coStudent1_16.dat foStudent1_16.dat noStudent1_16.dat"
+./gnu-omp_ne.sh; measure_time "./gomp-only 512_coords.coord coStudent1_512.dat foStudent1_512.dat noStudent1_512.dat"
 
 # Check if executable is present and run it
 if test -x $EXE; then
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
     echo using ${OMP_NUM_THREADS} OpenMP threads
-    for i in {1..10}; do ./${EXE}; done
+    for i in {1..10}; do
+        measure_time "./${EXE}"
+    done
 else
     echo $SRC did not build to $EXE
 fi
